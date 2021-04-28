@@ -1,2 +1,2 @@
 # jenkins-pipeline
-Jenkins pipeline example
+Jenkins pipeline example with java app and maven

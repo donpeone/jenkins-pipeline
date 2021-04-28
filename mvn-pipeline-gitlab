@@ -1,0 +1,50 @@
+pipeline {
+    agent { label 'dind' }
+    environment {
+        PASS=credentials('registry-pass') 
+		USER=credentials('registry-login')
+    }
+
+    stages {
+        stage('Checkout gitlab project') {
+            steps {
+                git branch: 'main',
+                    credentialsId: 'krzysiek',
+                    url: 'git@github.com:donpeone/jenkins-pipeline.git'
+
+                sh "ls -lat"
+                sh "whoami"
+            }
+        }
+        stage('Build') {
+            steps {
+	            sh 'chmod +x jenkins/build/maven.sh'
+                sh 'chmod +x jenkins/build/build.sh'
+                sh './jenkins/build/maven.sh mvn -B -DskipTests clean package'
+                sh './jenkins/build/build.sh'
+            }
+	    post {
+               success {
+                  archiveArtifacts artifacts: 'java-app/target/*.jar', fingerprint: true
+       	 }
+    	}
+        }
+        stage('Test') {
+            steps {
+                sh 'chmod +x jenkins/test/maven.sh'
+                sh './jenkins/test/maven.sh mvn test'
+            }
+ 	    post {
+               always {
+                   junit 'java-app/target/surefire-reports/*.xml' 
+	    }
+        }
+        }
+        stage('Push') {
+            steps {
+                sh 'chmod +x jenkins/push/push.sh'
+                sh './jenkins/push/push.sh'
+            }
+        }
+    }
+}
